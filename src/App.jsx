@@ -1,39 +1,48 @@
-import React,{useEffect,useState}from"react";
-import katex from"katex";
-import"katex/dist/katex.min.css";
-import{CheckCircle2,Circle,FunctionSquare,Menu,Moon,Sigma,Sun,X}from"lucide-react";
+import React,{useEffect,useMemo,useState}from"react";
+import katex from"katex";import"katex/dist/katex.min.css";
+import{BookOpen,CheckCircle2,ChevronDown,ChevronRight,Circle,FunctionSquare,Menu,Moon,RotateCcw,Sigma,Sun,X}from"lucide-react";
 
-function MathFormula({tex}){
-  const html=katex.renderToString(tex,{throwOnError:false,displayMode:true,strict:false});
-  return <div className="mathFormula" dangerouslySetInnerHTML={{__html:html}}/>;
-}
-
-const topics=[
-  {id:"functions",title:"2次関数",sub:"グラフ・最大値と最小値",icon:FunctionSquare},
-  {id:"equations",title:"2次方程式",sub:"解法・判別式・解と係数",icon:Sigma}
+const subjects=[
+{id:"roots",n:"01",title:"2次方程式と解",short:"解を求める",level:"基本"},
+{id:"parameter",n:"02",title:"解の条件と定数",short:"文字を含む問題",level:"標準"},
+{id:"intersection",n:"03",title:"グラフの共有点",short:"放物線と直線",level:"標準"},
+{id:"extrema",n:"04",title:"最大値・最小値",short:"定義域と頂点",level:"基本"},
+{id:"paramExtrema",n:"05",title:"最大・最小と定数",short:"場合分け",level:"応用"},
+{id:"inequality",n:"06",title:"2次不等式",short:"グラフで符号判断",level:"標準"},
+{id:"combined",n:"07",title:"グラフと定数の総合",short:"接する・交わる",level:"応用"},
+{id:"applied",n:"08",title:"文章題・活用問題",short:"立式と条件確認",level:"活用"}
 ];
 const exercises=[
-  {q:"x² - 5x + 6 = 0 を解きなさい。",a:"(x - 2)(x - 3)=0 より、x=2, 3"},
-  {q:"2x² + 3x - 1 = 0 を解きなさい。",a:"x=(-3±√17)/4"},
-  {q:"x² - 4x + k = 0 が重解をもつとき、kを求めなさい。",a:"16-4k=0 より、k=4"}
+{id:"e1",topic:"01",q:"2x^2+3x-1=0 を解きなさい。",hint:"因数分解しにくいので解の公式を使う。",tex:String.raw`x=\frac{-3\pm\sqrt{17}}{4}`,steps:["a=2, b=3, c=-1 と確認する。","解の公式に符号ごと代入する。","根号の中を 9+8=17 と整理する。"]},
+{id:"e2",topic:"02",q:"x^2-2mx+m+2=0 が異なる2つの実数解をもつ m の範囲を求めなさい。",hint:"異なる2実数解の条件は D>0。",tex:String.raw`D=4m^2-4(m+2)>0\ \Longleftrightarrow\ m<-1\ \text{または}\ m>2`,steps:["a=1, b=-2m, c=m+2。","D=(-2m)^2-4(m+2) を計算する。","m^2-m-2>0 を解く。"]},
+{id:"e3",topic:"03",q:"放物線 y=x^2-2x-3 と直線 y=x+1 の共有点を求めなさい。",hint:"2つの y を等しくする。",tex:String.raw`(x,y)=(-1,0),\ (4,5)`,steps:["x^2-2x-3=x+1 とおく。","x^2-3x-4=0 より x=-1,4。","直線へ代入して y=0,5。"]},
+{id:"e4",topic:"04",q:"-1\le x\le3 における y=x^2-2x+4 の最大値・最小値を求めなさい。",hint:"平方完成し、頂点と両端を比較する。",tex:String.raw`\min y=3\ (x=1),\qquad \max y=7\ (x=-1)`,steps:["y=(x-1)^2+3。","頂点 x=1 は定義域内。","y(-1)=7, y(1)=3, y(3)=7 を比較する。"]},
+{id:"e5",topic:"05",q:"y=x^2-2mx+3 の最小値が -1 となる m を求めなさい。",hint:"平方完成して最小値を表す。",tex:String.raw`y=(x-m)^2+3-m^2,\quad 3-m^2=-1\ \Longrightarrow\ m=\pm2`,steps:["xについて平方完成する。","係数が正なので頂点の値が最小値。","最小値 3-m^2=-1 を解く。"]},
+{id:"e6",topic:"06",q:"x^2-5x+6\le0 を解きなさい。",hint:"零点を求め、上に開く放物線の位置を見る。",tex:String.raw`2\le x\le3`,steps:["(x-2)(x-3)\le0。","境界は x=2,3。","上に開くので x軸以下は2つの解の間。"]},
+{id:"e7",topic:"07",q:"放物線 y=x^2+k と直線 y=2x+3 が接する k を求めなさい。",hint:"接するなら共有点の方程式は重解をもつ。",tex:String.raw`x^2-2x+k-3=0,\quad D=16-4k=0,\quad k=4`,steps:["2式を等しくして共有点の方程式を作る。","接する条件 D=0 を使う。","k=4 のとき接点は (1,5)。"]},
+{id:"e8",topic:"08",q:"周の長さが20mの長方形で、面積を最大にしなさい。",hint:"横を x m とすると縦は 10-x m。",tex:String.raw`S=x(10-x)=-(x-5)^2+25`,steps:["0<x<10 の条件を確認する。","面積を2次関数で表す。","頂点より最大面積25m^2、縦横5m。"]}
 ];
-function Card({title,children,done,toggle}){return <section className="card"><div className="sectionTitle"><h2>{title}</h2><button className="done" onClick={toggle}>{done?<CheckCircle2/>:<Circle/>}理解できた</button></div>{children}</section>}
+function Math({tex,inline=false}){const html=katex.renderToString(tex,{throwOnError:false,displayMode:!inline,strict:false});return inline?<span className="math inline" dangerouslySetInnerHTML={{__html:html}}/>:<div className="math" dangerouslySetInnerHTML={{__html:html}}/>}
+function Check({id,done,setDone}){return <button className="check" onClick={()=>setDone(p=>({...p,[id]:!p[id]}))}>{done[id]?<CheckCircle2/>:<Circle/>}{done[id]?"学習済み":"学習済みにする"}</button>}
+function Rule({title,children}){return <div className="rule"><b>{title}</b>{children}</div>}
+function Exercise({e,open,setOpen}){const visible=open[e.id]||{};return <article className="exercise"><div className="qtag">練習 {e.topic}</div><h3>{e.q}</h3><div className="actions"><button onClick={()=>setOpen(p=>({...p,[e.id]:{...visible,hint:!visible.hint}}))}>ヒント</button><button className="primary" onClick={()=>setOpen(p=>({...p,[e.id]:{...visible,answer:!visible.answer}}))}>解答・考え方</button></div>{visible.hint&&<div className="hint">ヒント：{e.hint}</div>}{visible.answer&&<div className="solution"><ol>{e.steps.map((s,i)=><li key={i}>{s}</li>)}</ol><Math tex={e.tex}/></div>}</article>}
+function Topic({s,done,setDone,children}){return <section id={s.id} className="topic"><div className="topicHead"><div className="number">{s.n}</div><div><span className="level">{s.level}</span><h2>{s.title}</h2><p>{s.short}</p></div><Check id={s.id} done={done} setDone={setDone}/></div>{children}</section>}
 export default function App(){
- const[topic,setTopic]=useState("equations"),[dark,setDark]=useState(false),[menu,setMenu]=useState(false),[open,setOpen]=useState({}),[done,setDone]=useState(()=>JSON.parse(localStorage.getItem("math-study-progress")||"{}"));
- useEffect(()=>localStorage.setItem("math-study-progress",JSON.stringify(done)),[done]);
- const mark=id=>setDone(p=>({...p,[id]:!p[id]})); const current=topics.find(t=>t.id===topic);
- const sidebar=<aside className="sidebar"><div className="brand"><div className="logo">数</div><div><b>数学学習ノート</b><small>高校1年生・2学期</small></div><button className="close" onClick={()=>setMenu(false)}><X/></button></div><nav>{topics.map(t=>{const I=t.icon;return <button key={t.id} className={topic===t.id?"nav active":"nav"} onClick={()=>{setTopic(t.id);setMenu(false)}}><I/><span><b>{t.title}</b><small>{t.sub}</small></span></button>})}</nav></aside>;
- return <div className={dark?"app dark":"app"}>{menu&&<div className="shade" onClick={()=>setMenu(false)}/>}<div className={menu?"mobileSide show":"mobileSide"}>{sidebar}</div><div className="desktopSide">{sidebar}</div><div className="content"><header><button className="menu" onClick={()=>setMenu(true)}><Menu/></button><div><small>高校1年生 / 2学期</small><h1>{current.title}</h1></div><button className="theme" onClick={()=>setDark(v=>!v)}>{dark?<Sun/>:<Moon/>}</button></header><main>
- {topic==="equations"?<>
- <section className="hero green"><div><small>高校1年生・2学期</small><h2>2次方程式</h2><p>問題を見て、どの方法を使うかを順番に理解します。</p></div></section>
- <Card title="1. 因数分解で解く" done={done.factor} toggle={()=>mark("factor")}><p>積の形に直して「積が0なら、どちらかが0」を使います。</p><MathFormula tex={String.raw`AB=0\quad\Longrightarrow\quad A=0\ \text{または}\ B=0`}/><div className="example"><MathFormula tex={String.raw`\begin{aligned}x^2-5x+6&=0\\(x-2)(x-3)&=0\\x&=2,\ 3\end{aligned}`}/></div></Card>
- <Card title="2. 解の公式を使う" done={done.formula} toggle={()=>mark("formula")}><p>係数 a、b、c を符号も含めて公式へ代入します。</p><MathFormula tex={String.raw`x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}`}/><div className="example"><MathFormula tex={String.raw`\begin{aligned}2x^2+3x-1&=0\\x&=\frac{-3\pm\sqrt{3^2-4\cdot2\cdot(-1)}}{2\cdot2}\\x&=\frac{-3\pm\sqrt{17}}{4}\end{aligned}`}/></div></Card>
- <Card title="3. 判別式" done={done.disc} toggle={()=>mark("disc")}><MathFormula tex={String.raw`D=b^2-4ac`}/><div className="three"><div><b>D &gt; 0</b><span>異なる2つの実数解</span></div><div><b>D = 0</b><span>重解</span></div><div><b>D &lt; 0</b><span>実数解なし</span></div></div></Card>
- <Card title="4. 解と係数の関係" done={done.vieta} toggle={()=>mark("vieta")}><div className="two"><MathFormula tex={String.raw`\alpha+\beta=-\frac{b}{a}`}/><MathFormula tex={String.raw`\alpha\beta=\frac{c}{a}`}/></div><div className="example"><MathFormula tex={String.raw`\alpha^2+\beta^2=(\alpha+\beta)^2-2\alpha\beta`}/></div></Card>
- <Card title="5. 確認問題" done={done.practice} toggle={()=>mark("practice")}>{exercises.map((e,i)=><div className="question" key={i}><b>Q{i+1}. {e.q}</b><button onClick={()=>setOpen(p=>({...p,[i]:!p[i]}))}>答えを見る</button>{open[i]&&<p className="answer">{e.a}</p>}</div>)}</Card>
- </>:<>
- <section className="hero purple"><div><small>高校1年生・2学期</small><h2>2次関数</h2><p>グラフの形と移動から学びます。</p></div></section>
- <Card title="1. 基本の形" done={done.qbasic} toggle={()=>mark("qbasic")}><MathFormula tex={String.raw`y=a(x-p)^2+q`}/><p>頂点は (p,q)、軸は x=p です。</p></Card>
- <Card title="2. グラフの移動" done={done.qgraph} toggle={()=>mark("qgraph")}><MathFormula tex={String.raw`y=ax^2\ \longrightarrow\ y=a(x-p)^2+q`}/><p>x軸方向へ p、y軸方向へ q だけ移動します。</p></Card>
- </>}
+ const[dark,setDark]=useState(false),[drawer,setDrawer]=useState(false),[active,setActive]=useState("roots"),[open,setOpen]=useState({}),[done,setDone]=useState(()=>{try{return JSON.parse(localStorage.getItem("math-study-v3")||"{}")}catch{return{}}});
+ useEffect(()=>localStorage.setItem("math-study-v3",JSON.stringify(done)),[done]);
+ const progress=useMemo(()=>Math.round(subjects.filter(s=>done[s.id]).length/subjects.length*100),[done]);
+ const go=id=>{setActive(id);document.getElementById(id)?.scrollIntoView({behavior:"smooth",block:"start"});setDrawer(false)};
+ const nav=<aside className="sidebar"><div className="brand"><div className="logo">数</div><div><b>数学学習ノート</b><small>高校1年生・2学期</small></div><button className="close" onClick={()=>setDrawer(false)}><X/></button></div><div className="course"><small>総合単元</small><strong>2次式・2次方程式・2次関数</strong></div><nav>{subjects.map(s=><button key={s.id} className={active===s.id?"nav active":"nav"} onClick={()=>go(s.id)}><span>{s.n}</span><div><b>{s.title}</b><small>{s.short}</small></div><ChevronRight/></button>)}</nav><div className="progress"><div><span>学習進度</span><b>{progress}%</b></div><div className="bar"><i style={{width:`${progress}%`}}/></div></div></aside>;
+ return <div className={dark?"app dark":"app"}>{drawer&&<div className="shade" onClick={()=>setDrawer(false)}/>}<div className={drawer?"mobile show":"mobile"}>{nav}</div><div className="desktop">{nav}</div><div className="content"><header><button className="menu" onClick={()=>setDrawer(true)}><Menu/></button><div><small>高校1年生 / 2学期</small><h1>2次式の総合問題</h1></div><button className="theme" onClick={()=>setDark(v=>!v)}>{dark?<Sun/>:<Moon/>}</button></header><main>
+ <section className="hero"><div><span>分類から解法を選ぶ</span><h2>2次式の総合問題</h2><p>「何を求める問題か」を見抜き、方程式・グラフ・最大最小・不等式をつなげて考える。</p></div><div className="decision"><b>問題を見たら</b><ol><li>求めるものを確認</li><li>式・グラフ・条件に翻訳</li><li>使う道具を選択</li><li>答えの条件を確認</li></ol></div></section>
+ <section className="map"><h2>問題タイプ早見表</h2><div className="mapGrid">{subjects.map(s=><button onClick={()=>go(s.id)} key={s.id}><span>{s.n}</span><b>{s.title}</b><small>{s.short}</small></button>)}</div></section>
+ <Topic s={subjects[0]} done={done} setDone={setDone}><p className="lead">まず右辺を0にし、式の形から解法を選ぶ。</p><div className="flow"><div>因数分解できる</div><ChevronDown/><div>因数分解して積=0</div><div>平方の形</div><ChevronDown/><div>平方根を利用</div><div>それ以外</div><ChevronDown/><div>解の公式</div></div><Rule title="解の公式"><Math tex={String.raw`x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}`}/></Rule><Exercise e={exercises[0]} open={open} setOpen={setOpen}/></Topic>
+ <Topic s={subjects[1]} done={done} setDone={setDone}><p className="lead">判別式と解の和・積を使い、条件を不等式に直す。</p><div className="conditionGrid"><Rule title="実数解"><Math tex={String.raw`D\ge0`}/></Rule><Rule title="異なる2実数解"><Math tex={String.raw`D>0`}/></Rule><Rule title="重解"><Math tex={String.raw`D=0`}/></Rule><Rule title="実数解なし"><Math tex={String.raw`D<0`}/></Rule><Rule title="2解が異符号"><Math tex={String.raw`\alpha\beta<0`}/></Rule><Rule title="2解がともに正"><Math tex={String.raw`D\ge0,\ \alpha+\beta>0,\ \alpha\beta>0`}/></Rule><Rule title="2解がともに負"><Math tex={String.raw`D\ge0,\ \alpha+\beta<0,\ \alpha\beta>0`}/></Rule></div><div className="note">「ともに正・負」「異符号」は発展内容。解と係数の関係を使う。</div><Exercise e={exercises[1]} open={open} setOpen={setOpen}/></Topic>
+ <Topic s={subjects[2]} done={done} setDone={setDone}><p className="lead">共有点では2つの式の y を等しくし、得られた方程式を解く。</p><Rule title="共有点の基本"><Math tex={String.raw`f(x)=g(x)`}/><p>解の個数は共有点の個数。座標を求めるときは、得た x を元の式へ代入して y も求める。</p></Rule><div className="conditionGrid three"><Rule title="D > 0">共有点は2個</Rule><Rule title="D = 0">接する</Rule><Rule title="D < 0">共有点なし</Rule></div><Exercise e={exercises[2]} open={open} setOpen={setOpen}/></Topic>
+ <Topic s={subjects[3]} done={done} setDone={setDone}><p className="lead">平方完成して頂点を求める。定義域がある場合は頂点と両端を比較する。</p><Rule title="頂点形式"><Math tex={String.raw`y=a(x-p)^2+q`}/><p>a&gt;0 なら最小値、a&lt;0 なら最大値が頂点で決まる。</p></Rule><div className="logic"><b>定義域がある場合</b><span>① 平方完成</span><span>② 頂点が定義域内か確認</span><span>③ 頂点と端点の値を比較</span></div><Exercise e={exercises[3]} open={open} setOpen={setOpen}/></Topic>
+ <Topic s={subjects[4]} done={done} setDone={setDone}><p className="lead">定数を含む頂点の位置と値を求め、指定された最大値・最小値につなげる。</p><Rule title="基本の見方"><Math tex={String.raw`y=x^2-2mx+c=(x-m)^2+c-m^2`}/><p>頂点は (m, c-m²)。定義域があるときは、m の位置によって場合分けする。</p></Rule><Exercise e={exercises[4]} open={open} setOpen={setOpen}/></Topic>
+ <Topic s={subjects[5]} done={done} setDone={setDone}><p className="lead">境界となる2次方程式を解き、放物線がx軸の上か下かで範囲を決める。</p><div className="conditionGrid"><Rule title="a > 0"><p>&gt;0 は外側、&lt;0 は2解の間</p></Rule><Rule title="a < 0"><p>&gt;0 は2解の間、&lt;0 は外側</p></Rule></div><Rule title="すべての実数で0以上"><Math tex={String.raw`a>0\quad\text{かつ}\quad D\le0`}/></Rule><Exercise e={exercises[5]} open={open} setOpen={setOpen}/></Topic>
+ <Topic s={subjects[6]} done={done} setDone={setDone}><p className="lead">「接する」「2点で交わる」「交わらない」を判別式へ翻訳する。</p><div className="translation"><div><b>2点で交わる</b><span>D&gt;0</span></div><div><b>接する</b><span>D=0</span></div><div><b>交わらない</b><span>D&lt;0</span></div><div><b>常に上側</b><span>a&gt;0, D&lt;0</span></div></div><Exercise e={exercises[6]} open={open} setOpen={setOpen}/></Topic>
+ <Topic s={subjects[7]} done={done} setDone={setDone}><p className="lead">文章から数量の関係を作り、方程式または2次関数として表す。</p><div className="logic"><b>解答の手順</b><span>① 何を x とするか書く</span><span>② 数量の条件から式を作る</span><span>③ 方程式を解く、または最大・最小を求める</span><span>④ 負の長さなど不適切な答えを除く</span><span>⑤ 単位を付ける</span></div><Exercise e={exercises[7]} open={open} setOpen={setOpen}/></Topic>
+ <section className="review"><BookOpen/><div><h2>総合チェック</h2><p>各テーマの「学習済み」を押すと進度が保存されます。次版では各テーマに基本・標準・応用の追加問題を実装します。</p></div><button onClick={()=>{setDone({});setOpen({})}}><RotateCcw/>進度をリセット</button></section>
  </main></div></div>}
